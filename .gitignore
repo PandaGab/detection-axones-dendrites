@@ -106,3 +106,5 @@ ENV/
 /vcs.xml
 /workspace.xml
 /transcriptionTable.txt
+*.txt
+

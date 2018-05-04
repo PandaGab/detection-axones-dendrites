@@ -30,14 +30,21 @@ class datasetDetection(Dataset):
             actinePath = csvFile[1][line]
             axonePath = csvFile[2][line]
             dendritePath = csvFile[3][line]
-            self.actines.append(Image.open(actinePath))
-            self.axones.append(Image.open(axonePath))
-            self.dendrites.append(Image.open(dendritePath))
+            act = Image.open(actinePath)
+            self.actines.append(act.copy())
+            act.close()
+            axo = Image.open(axonePath)
+            self.axones.append(axo.copy())
+            axo.close()
+            den = Image.open(dendritePath)
+            self.dendrites.append(den.copy())
+            den.close()
             
-        self.transformations = transforms
         if transform is None:
             self.transformations = transforms.ToTensor()
-             
+        else:
+            self.transformations = transform
+
     def __getitem__(self, idx):
         seed = np.random.randint(2147483647)
         random.seed(seed)
@@ -58,9 +65,13 @@ class datasetDetection(Dataset):
     
 if __name__ == "__main__":
     csvFilePath = './transcriptionTable.txt'
-    dataset = datasetDetection(csvFilePath)
+    transformation = transforms.Compose([transforms.RandomCrop(150),
+                                         transforms.ToTensor()])
+    dataset = datasetDetection(csvFilePath, transform=transformation)
     actine, mask = dataset[1]
     # plt.figure()
     # plt.imshow(actine)
     
     dataloader = DataLoader(dataset, batch_size=2,shuffle=False)
+    
+    
