@@ -5,9 +5,9 @@ from torchvision import transforms
 
 from PIL import Image
 
-import os
-from fnmatch import fnmatch
-from skimage.external import tifffile
+#import os
+#from fnmatch import fnmatch
+#from skimage.external import tifffile
 import matplotlib.pyplot as plt
 import pandas
 import random
@@ -48,11 +48,11 @@ class datasetDetection(Dataset):
         dendrite = self.transformations(self.dendrites[idx])
         background = torch.ones_like(actine) - axone - dendrite
         background[background < 0] = 0
-        
-        return actine, torch.cat([axone, dendrite, background])
+        masks = torch.cat([axone, dendrite, background])
+        return actine, masks
     
     def __len__(self):
-        return len(self.actine)
+        return len(self.actines)
     
 
     
@@ -60,8 +60,7 @@ if __name__ == "__main__":
     csvFilePath = './transcriptionTable.txt'
     dataset = datasetDetection(csvFilePath)
     actine, mask = dataset[1]
-    plt.figure()
-    plt.imshow(actine)
+    # plt.figure()
+    # plt.imshow(actine)
     
     dataloader = DataLoader(dataset, batch_size=2,shuffle=False)
-  

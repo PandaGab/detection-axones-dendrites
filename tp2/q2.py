@@ -2,9 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets, transforms
-import torch.optim as optim
 from deeplib.trainingq2 import train, validate
-from deeplib.datasets import load_cifar10
 import math
 
 

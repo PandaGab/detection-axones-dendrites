@@ -76,7 +76,7 @@ def validate_ranking(model, val_loader, use_gpu=True):
     return good, errors
 
 
-def train(model, optimizer,dataset , n_epoch, batch_size, use_gpu=False, scheduler=None, criterion=None):
+def train(model, optimizer, dataset, n_epoch, batch_size, use_gpu=False, scheduler=None, criterion=None):
     history = History()
 
     if criterion is None:

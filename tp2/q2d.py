@@ -3,7 +3,7 @@ from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 import numpy as np
 import math
-from q2 import MyDropout
+
 
 
 model = torch.load('./trainingModel.pt')
