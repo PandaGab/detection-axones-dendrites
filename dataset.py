@@ -30,15 +30,9 @@ class datasetDetection(Dataset):
             actinePath = csvFile[1][line]
             axonePath = csvFile[2][line]
             dendritePath = csvFile[3][line]
-            act = Image.open(actinePath)
-            self.actines.append(act.copy())
-            act.close()
-            axo = Image.open(axonePath)
-            self.axones.append(axo.copy())
-            axo.close()
-            den = Image.open(dendritePath)
-            self.dendrites.append(den.copy())
-            den.close()
+            self.actines.append(Image.open(actinePath))
+            self.axones.append(Image.open(axonePath))
+            self.dendrites.append(Image.open(dendritePath))
             
         if transform is None:
             self.transformations = transforms.ToTensor()
@@ -73,5 +67,13 @@ if __name__ == "__main__":
     # plt.imshow(actine)
     
     dataloader = DataLoader(dataset, batch_size=2,shuffle=False)
-    
+    plt.figure()
+    for input , m in dataloader:
+        print(input.size())
+        plt.subplot(1,2,1)
+        plt.imshow(input[0].squeeze(0).numpy())
+        plt.subplot(1,2,2)
+        plt.imshow(m[0,2].numpy())
+
+
     
