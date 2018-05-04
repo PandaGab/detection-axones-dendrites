@@ -13,6 +13,9 @@ import pandas
 import random
 import numpy as np
 
+# statistiques sur les photos dans train/actines
+# mean = 32772.82847326139
+# std = 8.01126226921115
 
 class datasetDetection(Dataset):
     def __init__(self, cvsFilePath, transform=None):

@@ -9,6 +9,8 @@ import skimage.io as io
 import tkinter
 from tkinter import filedialog
 
+from tqdm import tqdm
+
 def gaussian_blur(img, sigma=10, threshold=5e-5, logicalNot=False):
     '''This function performs a gaussian blur on an numpy array then retreives the
     binary mask of the image
@@ -20,7 +22,8 @@ def gaussian_blur(img, sigma=10, threshold=5e-5, logicalNot=False):
     :returns : The binary image filtered with gaussian blur
     '''
     gaussianBlur = filters.gaussian(img, sigma=sigma)
-    binaryFilter = (gaussianBlur > threshold).astype(int)
+    vmax = np.amax(gaussianBlur)
+    binaryFilter = (gaussianBlur > threshold * vmax).astype(int)
     im = gaussianBlur * binaryFilter
     im = im / np.amax(im)
     if logicalNot:
@@ -49,32 +52,42 @@ if __name__ == "__main__":
                 flist.append(os.path.join(path,name))
                 nlist.append(name.split('.')[0])
                 
+    flist.sort()
     file = open('transcriptionTable.txt', 'w')
+    
+    # Create folders
+    actinePath = os.path.join(root, "actines")
+    if not os.path.exists(actinePath):
+        os.mkdir(actinePath)
+                
+    axonMaskPath = os.path.join(root, "axonsMask")
+    if not os.path.exists(axonMaskPath):
+        os.mkdir(axonMaskPath)
+    
+    dendriteMaskPath = os.path.join(root,"dendritesMask")
+    if not os.path.exists(dendriteMaskPath):
+        os.mkdir(dendriteMaskPath)
+      
     n = 0
-    for i,f in enumerate(flist):
-        actinePath = os.path.join("/home/nani/Documents/data/actine",nlist[i]+'.tif')
-        axoneMaskPath = os.path.join("/home/nani/Documents/data/axone_mask",nlist[i]+".tif")
-        dendriteMaskPath = os.path.join("/home/nani/Documents/data/dendrite_mask",nlist[i]+".tif")
+    for i,f in tqdm(enumerate(flist)):
+        actineSavePath = os.path.join(actinePath, str(n) + ".tif")
+        axoneMaskSavePath = os.path.join(axonMaskPath, str(n) + ".tif")
+        dendriteMaskSavePath = os.path.join(dendriteMaskPath, str(n) + ".tif")
         
-        file.write(str(n) + ',' + actinePath + ',' + axoneMaskPath + ',' + dendriteMaskPath + '\n')
-        n += 1
+        file.write(str(n) + ',' + f + '\n')
         
         img = tifffile.imread(f) # reads the file
-        tifffile.imsave(actinePath,(img[0].astype(np.float) / 256.).astype(np.uint8)) ### changer ca
+        
+        tifffile.imsave(actineSavePath, img[0]) 
         
         for chan in range(img.shape[0]):
             img[chan] = img[chan] - np.amin(img[chan]) # normalize to normal count
 
-        dendrites = gaussian_blur(img[2], sigma=5, threshold=2e-5).astype(np.uint8) * 255 # dendrite mask
-        axons = gaussian_blur(img[1], sigma=8, threshold=4e-5).astype(np.uint8) * 255 # axon mask
+        axons = gaussian_blur(img[1], sigma=5, threshold=0.1).astype(np.uint8) * 255 # axon mask
+        dendrites = gaussian_blur(img[2], sigma=5, threshold=0.2).astype(np.uint8) * 255 # dendrite mask
         
-#         For dendrites only
-#        im = [
-#            dendrites
-#        ]
-#         For both channels
-        im = [dendrites, axons]
+        tifffile.imsave(axoneMaskSavePath, axons)
+        tifffile.imsave(dendriteMaskSavePath, dendrites)
+        n += 1
         
-        tifffile.imsave(dendriteMaskPath, dendrites)
-        tifffile.imsave(axoneMaskPath, axons)
     file.close()
