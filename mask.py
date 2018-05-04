@@ -4,6 +4,7 @@ import os
 from fnmatch import fnmatch
 from skimage.external import tifffile
 from skimage import filters
+import skimage.io as io
 
 import tkinter
 from tkinter import filedialog
@@ -47,23 +48,33 @@ if __name__ == "__main__":
             if fnmatch(name,keepFormat):
                 flist.append(os.path.join(path,name))
                 nlist.append(name.split('.')[0])
-
+                
+    file = open('transcriptionTable.txt', 'w')
+    n = 0
     for i,f in enumerate(flist):
+        actinePath = os.path.join("/home/nani/Documents/data/actine",nlist[i]+'.tif')
+        axoneMaskPath = os.path.join("/home/nani/Documents/data/axone_mask",nlist[i]+".tif")
+        dendriteMaskPath = os.path.join("/home/nani/Documents/data/dendrite_mask",nlist[i]+".tif")
+        
+        file.write(str(n) + ',' + actinePath + ',' + axoneMaskPath + ',' + dendriteMaskPath + '\n')
+        n += 1
+        
         img = tifffile.imread(f) # reads the file
+        tifffile.imsave(actinePath,(img[0].astype(np.float) / 256.).astype(np.uint8)) ### changer ca
+        
         for chan in range(img.shape[0]):
             img[chan] = img[chan] - np.amin(img[chan]) # normalize to normal count
 
-        dendrites = gaussian_blur(img[2], sigma=8, threshold=1e-5) # dendrite mask
-        axons = gaussian_blur(img[1], sigma=8, threshold=4e-5,logicalNot=True) # axon mask
+        dendrites = gaussian_blur(img[2], sigma=5, threshold=2e-5).astype(np.uint8) * 255 # dendrite mask
+        axons = gaussian_blur(img[1], sigma=8, threshold=4e-5).astype(np.uint8) * 255 # axon mask
         
-        # For dendrites only
-        im = [
-            dendrites
-        ]
-        # For both channels
-        # im = [
-        #     dendrites,
-        #     axons
-        # ]
+#         For dendrites only
+#        im = [
+#            dendrites
+#        ]
+#         For both channels
+        im = [dendrites, axons]
         
-        tifffile.imsave(os.path.join(root,"{}_dendrites.tif".format(nlist[i])), np.asarray(im).astype(np.uint16))
+        tifffile.imsave(dendriteMaskPath, dendrites)
+        tifffile.imsave(axoneMaskPath, axons)
+    file.close()
