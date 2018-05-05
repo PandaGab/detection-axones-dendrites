@@ -1,5 +1,8 @@
 import torch
 import numpy as np
+import random
+
+import torchvision.transforms.functional as F
 
 class RandomCrop(object):
     """Crop randomly the image in a sample.
@@ -17,32 +20,40 @@ class RandomCrop(object):
             assert len(output_size) == 2
             self.output_size = output_size
 
-    def __call__(self, image):
-        h, w = image.shape[:2]
+    def __call__(self, data):
+        actine = data['actine']
+        mask = data['mask']
+        h, w = actine.shape[:2]
         new_h, new_w = self.output_size
         
         top = np.random.randint(0, h - new_h)
         left = np.random.randint(0, w - new_w)
 
-        image = image[top: top + new_h,
-                      left: left + new_w]
+        data['actine'] = actine[top: top + new_h,
+                       left: left + new_w]
+        data['mask'] = mask[top: top + new_h,
+                    left: left + new_w]
         
-        return image
+        return data
     
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
 
-    def __call__(self, image):
-        threeChannels = len(image.shape) == 3
+    def __call__(self, data):
+        actine = data['actine']
+        mask = data['mask']
+        
+        threeChannels = len(actine.shape) == 3
         
         if not threeChannels:
-            image = image[:, :, np.newaxis]
+            actine = actine[:, :, np.newaxis]
         
         # swap color axis because
         # numpy image: H x W x C
         # torch image: C X H X W
-        image = np.moveaxis(image, 2, 0).astype('float')
-        return torch.from_numpy(image)
+        data['actine'] = torch.from_numpy(np.moveaxis(actine, 2, 0).astype('float'))
+        data['mask'] = torch.from_numpy(np.moveaxis(ToBool()(mask), 2, 0))
+        return data
 
 class ToBool(object):
     """Convert to 0-1 Tensor."""
@@ -51,4 +62,46 @@ class ToBool(object):
         image[image > 0] = 1
         
         return image
+        
+class Normalize(object):
+    """Normalize only the actine image."""
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+    
+    def __call__(self, data):
+        actine = data['actine']
+        data['actine'] = F.normalize(actine, self.mean, self.std)
+        
+        return data
+    
+class RandomHorizontalFlip(object):
+    """Random horizontal flip on actine and masks."""
+    def __call__(self, data):
+        
+        if random.random() < 0.5:
+            data['actine'] = np.fliplr(data['actine']).copy()
+            data['mask'] = np.fliplr(data['mask']).copy()
+        return data
+    
+class RandomVerticalFlip(object):
+    """Random vertical flip on actine and masks."""
+    def __call__(self, data):
+        if random.random() < 0.5:
+            data['actine'] = np.flipud(data['actine']).copy()
+            data['mask'] = np.flipud(data['mask']).copy()
+        return data
+        
+class Pad(object):
+    """Pad only the actine image. Can be use with the same arguments as 
+    https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.pad.html"""
+    def __init__(self, pad_width, mode, **kwargs):
+        self.pad_width = pad_width
+        self.mode = mode
+        self.kwargs = kwargs
+        
+    def __call__(self, data):
+        data['actine'] = np.pad(data['actine'], self.pad_width, self.mode, **self.kwargs)
+        return data
+        
         

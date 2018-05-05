@@ -13,7 +13,6 @@ from utils import plot
 #from skimage.external import tifffile
 import matplotlib.pyplot as plt
 import pandas
-import random
 import numpy as np
 
 # statistiques sur les photos dans train/actines
@@ -21,7 +20,7 @@ import numpy as np
 # std = 8.01126226921115
 
 class datasetDetection(Dataset):
-    def __init__(self, csvFilePath, actineTransform=None, maskTransform=None):
+    def __init__(self, csvFilePath, transforms=None):
         super(datasetDetection, self).__init__()
         
         rootDir = os.path.dirname(csvFilePath)
@@ -44,27 +43,25 @@ class datasetDetection(Dataset):
             self.axonesMask.append(tifffile.imread(axonePath))
             self.dendritesMask.append(tifffile.imread(dendritePath))
             
-        if actineTransform is None:
-            self.actineTransformations = tifT.ToTensor()
+        if transforms is None:
+            self.transformations = tifT.ToTensor()
         else:
-            self.actineTransformations = actineTransform
-        
-        if maskTransform is None:
-            self.maskTransformations = transforms.ToTensor()
-        else:
-            self.maskTransformations = maskTransform
+            self.transformations = transforms
 
     def __getitem__(self, idx):
-        seed = np.random.randint(2147483647)
-        torch.manual_seed(seed)
-        actine = self.actineTransformations(self.actines[idx])
-        torch.manual_seed(seed)
-        axone = self.maskTransformations(self.axonesMask[idx])
-        torch.manual_seed(seed)
-        dendrite = self.maskTransformations(self.dendritesMask[idx])
-        background = torch.ones_like(actine) - axone - dendrite
+        data = {}
+        data['actine'] = self.actines[idx]
+        mask = np.stack((self.axonesMask[idx], self.dendritesMask[idx]), axis=2)
+        data['mask'] = mask
+        data_transform = self.transformations(data)
+        actine = data_transform['actine']
+        mask = data_transform['mask']
+        background = torch.ones_like(mask[0]) - (mask[0] + mask[1])
         background[background < 0] = 0
-        masks = torch.cat([axone, dendrite, background])
+        masks = torch.cat([mask[0].unsqueeze(0), 
+                           mask[1].unsqueeze(0), 
+                           background.unsqueeze(0)])
+        
         return actine, masks
     
     def __len__(self):
@@ -76,22 +73,22 @@ if __name__ == "__main__":
     csvFilePath = "/home/nani/Documents/data/2017-11-14 EXP 201b Drugs/transcriptionTable.txt"
     mean = [32772.82847326139]
     std = [8.01126226921115]
-    actineTransformation = transforms.Compose([tifT.RandomCrop(500),
-                                         tifT.ToTensor(),
-                                         transforms.Normalize(mean=mean,
-                                                              std=std)])
-    maskTransform = transforms.Compose([tifT.RandomCrop(500),
-                                        tifT.ToTensor(),
-                                        tifT.ToBool()])
+    transformations = transforms.Compose([tifT.RandomCrop(500),
+                                          tifT.RandomHorizontalFlip(),                                         
+                                          tifT.Pad(100,mode='constant', constant_values=mean[0]),
+                                          tifT.RandomVerticalFlip(),
+                                          tifT.ToTensor(),
+                                          tifT.Normalize(mean=mean,
+                                                         std=std)])
+    
     dataset = datasetDetection(csvFilePath, 
-                               actineTransform=actineTransformation,
-                               maskTransform=maskTransform)
+                               transforms=transformations)
     
     dataloader = DataLoader(dataset, batch_size=2,shuffle=False)
     for actine , mask in dataloader:
-        img = np.stack((actine[0,0],mask[0,0],mask[0,1]))
+        img = (actine[0,0].numpy(),mask[0,0].numpy(),mask[0,1].numpy())
         plot(img)
-        img = np.stack((actine[1,0],mask[1,0],mask[1,1]))
+        img = (actine[1,0].numpy(),mask[1,0].numpy(),mask[1,1].numpy())
         plot(img)
         break
 
