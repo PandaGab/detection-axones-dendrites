@@ -10,7 +10,7 @@ def normalize(img):
     vmin = np.min(img)
     return (img - vmin) / (vmax - vmin)
 
-def plot(img, show=['actine','dendrite','axon']):
+def plot(img, show=['actine','axon','dendrite']):
     nbPlot = len(show)
     plt.figure()
     for n in range(nbPlot):
@@ -67,5 +67,4 @@ def splitTrainTest(root, test_size):
             dst = os.path.join(root,"test", b,str(testID)+".tif")
             copyfile(src, dst)
                 
-    
     

@@ -38,7 +38,7 @@ if __name__ == "__main__":
  #    root = filedialog.askdirectory()
  #    copy_folder = input("\nEnter name of the output directory : ")
  #    copy_folder = os.path.join(root, copy_folder)
-     root = "/home/nani/Documents/data/Projet détection axones dendrites" # where to look
+     root = "/home/nani/Documents/data/2017-11-14 EXP 201b Drugs" # where to look
      #os.makedirs(os.path.join(root,"masked"),exist_ok=True) # where to save
      keepFormat = "*.tif" # may have to change to *.tiff in windows
      flist, nlist = [],[]
@@ -49,7 +49,7 @@ if __name__ == "__main__":
                  nlist.append(name.split('.')[0])
 
      flist.sort()
-     file = open('transcriptionTable.txt', 'w')
+     file = open(os.path.join(root, 'transcriptionTable.txt'), 'w')
 
      # Create folders
      actinePath = os.path.join(root, "actines")
@@ -70,7 +70,7 @@ if __name__ == "__main__":
          axoneMaskSavePath = os.path.join(axonMaskPath, str(n) + ".tif")
          dendriteMaskSavePath = os.path.join(dendriteMaskPath, str(n) + ".tif")
 
-         file.write(str(n) + ',' + actineSavePath + ',' + axoneMaskSavePath + ',' + dendriteMaskSavePath+'\n')
+         file.write(str(n) + ',' + f +'\n')
 
          img = tifffile.imread(f) # reads the file
 
