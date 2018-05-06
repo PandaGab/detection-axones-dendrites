@@ -10,7 +10,7 @@ def normalize(img):
     vmin = np.min(img)
     return (img - vmin) / (vmax - vmin)
 
-def plot(img, show=['actine','axon','dendrite']):
+def plot(img, show=['actine','axon','dendrite', 'background']):
     nbPlot = len(show)
     plt.figure()
     for n in range(nbPlot):
@@ -20,12 +20,16 @@ def plot(img, show=['actine','axon','dendrite']):
             plt.title('Actine')
         if 'axon' in show[n]:
             plt.subplot(1,nbPlot,n+1)
-            plt.imshow(img[1])
+            plt.imshow(img[1],cmap='gray')
             plt.title('Axon')
         if 'dendrite' in show[n]:
             plt.subplot(1,nbPlot,n+1)
-            plt.imshow(img[2])
+            plt.imshow(img[2], cmap='gray')
             plt.title('Dendrite')
+        if 'background' in show[n]:
+            plt.subplot(1,nbPlot,n+1)
+            plt.imshow(img[3],cmap='gray')
+            plt.title('Background')
 
 def splitTrainTest(root, test_size):
     # create train and test folders, each containing actine, axonsMask and

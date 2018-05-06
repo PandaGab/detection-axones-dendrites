@@ -11,7 +11,7 @@ from utils import plot
 #import os
 #from fnmatch import fnmatch
 #from skimage.external import tifffile
-import matplotlib.pyplot as plt
+
 import pandas
 import numpy as np
 
@@ -56,7 +56,7 @@ class datasetDetection(Dataset):
         data_transform = self.transformations(data)
         actine = data_transform['actine']
         mask = data_transform['mask']
-        background = torch.ones_like(mask[0]) - (mask[0] + mask[1])
+        background = torch.ones_like(mask[0]) - mask[0] - mask[1]
         background[background < 0] = 0
         masks = torch.cat([mask[0].unsqueeze(0), 
                            mask[1].unsqueeze(0), 
@@ -86,9 +86,9 @@ if __name__ == "__main__":
     
     dataloader = DataLoader(dataset, batch_size=2,shuffle=False)
     for actine , mask in dataloader:
-        img = (actine[0,0].numpy(),mask[0,0].numpy(),mask[0,1].numpy())
+        img = (actine[0,0].numpy(),mask[0,0].numpy(),mask[0,1].numpy(), mask[0,2].numpy())
         plot(img)
-        img = (actine[1,0].numpy(),mask[1,0].numpy(),mask[1,1].numpy())
+        img = (actine[1,0].numpy(),mask[1,0].numpy(),mask[1,1].numpy(),mask[1,2].numpy())
         plot(img)
         break
 

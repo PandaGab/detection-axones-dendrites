@@ -52,7 +52,7 @@ class ToTensor(object):
         # numpy image: H x W x C
         # torch image: C X H X W
         data['actine'] = torch.from_numpy(np.moveaxis(actine, 2, 0).astype('float'))
-        data['mask'] = torch.from_numpy(np.moveaxis(ToBool()(mask), 2, 0))
+        data['mask'] = torch.from_numpy(np.moveaxis(ToBool()(mask), 2, 0).astype('float'))
         return data
 
 class ToBool(object):
