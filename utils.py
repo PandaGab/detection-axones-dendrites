@@ -71,4 +71,15 @@ def splitTrainTest(root, test_size):
             dst = os.path.join(root,"test", b,str(testID)+".tif")
             copyfile(src, dst)
                 
-    
+# just pass this function to de the net: net.apply(initialize_weights)
+def initialize_weights(m):
+    name = m.__class__.__name__
+    if name.find('Conv') != -1:
+        m.weight.data.normal_(0, 0.002)
+#        print('initialize conv weights')
+    elif name.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+#        print('initialize BN weights')
+        
+        

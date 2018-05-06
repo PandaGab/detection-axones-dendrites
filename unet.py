@@ -7,6 +7,8 @@ import math
 from torch.autograd import Variable
 from dataset import datasetDetection
 import tifTransforms as tifT
+from torch.utils.data import DataLoader
+from utils import initialize_weights
 
 
 # UNet desribe in pix2pix https://arxiv.org/abs/1611.07004
@@ -15,20 +17,20 @@ class UNet(nn.Module):
     def __init__(self, inC, outC, nbf=64):
         super(UNet, self).__init__()
         
-        self.down1 = nn.Conv2d(inC    , nbf    , 2, stride=2, padding=1)
-        self.down2 = nn.Conv2d(nbf    , nbf * 2, 2, stride=2, padding=1, bias=False)
+        self.down1 = nn.Conv2d(inC    , nbf    , 4, stride=2, padding=1)
+        self.down2 = nn.Conv2d(nbf    , nbf * 2, 4, stride=2, padding=1, bias=False)
         self.d_bn2 = nn.BatchNorm2d(nbf * 2)
-        self.down3 = nn.Conv2d(nbf * 2, nbf * 4, 2, stride=2, padding=1, bias=False)
+        self.down3 = nn.Conv2d(nbf * 2, nbf * 4, 4, stride=2, padding=1, bias=False)
         self.d_bn3 = nn.BatchNorm2d(nbf * 4)
-        self.down4 = nn.Conv2d(nbf * 4, nbf * 8, 2, stride=2, padding=1, bias=False)
+        self.down4 = nn.Conv2d(nbf * 4, nbf * 8, 4, stride=2, padding=1, bias=False)
         self.d_bn4 = nn.BatchNorm2d(nbf * 8)
-        self.down5 = nn.Conv2d(nbf * 8, nbf * 8, 2, stride=2, padding=1, bias=False)
+        self.down5 = nn.Conv2d(nbf * 8, nbf * 8, 4, stride=2, padding=1, bias=False)
         self.d_bn5 = nn.BatchNorm2d(nbf * 8)
-        self.down6 = nn.Conv2d(nbf * 8, nbf * 8, 2, stride=2, padding=1, bias=False)
+        self.down6 = nn.Conv2d(nbf * 8, nbf * 8, 4, stride=2, padding=1, bias=False)
         self.d_bn6 = nn.BatchNorm2d(nbf * 8)
-        self.down7 = nn.Conv2d(nbf * 8, nbf * 8, 2, stride=2, padding=1, bias=False)
+        self.down7 = nn.Conv2d(nbf * 8, nbf * 8, 4, stride=2, padding=1, bias=False)
         self.d_bn7 = nn.BatchNorm2d(nbf * 8)
-        self.down8 = nn.Conv2d(nbf * 8, nbf * 8, 2, stride=2, padding=1, bias=False)
+        self.down8 = nn.Conv2d(nbf * 8, nbf * 8, 4, stride=2, padding=1, bias=False)
         self.d_bn8 = nn.BatchNorm2d(nbf * 8)
         self.up8 = nn.ConvTranspose2d(nbf * 8, nbf * 8, 4, stride=2, padding=1, bias=False)
         self.u_bn8 = nn.BatchNorm2d(nbf * 8)
@@ -39,11 +41,11 @@ class UNet(nn.Module):
         self.up5 = nn.ConvTranspose2d(nbf * 16, nbf * 8, 4, stride=2, padding=1, bias=False)
         self.u_bn5 = nn.BatchNorm2d(nbf * 8)
         self.up4 = nn.ConvTranspose2d(nbf * 16, nbf * 4, 4, stride=2, padding=1, bias=False)
-        self.u_bn4 = nn.BatchNorm2d(nbf * 8)
+        self.u_bn4 = nn.BatchNorm2d(nbf * 4)
         self.up3 = nn.ConvTranspose2d(nbf * 8, nbf * 2, 4, stride=2, padding=1, bias=False)
-        self.u_bn3 = nn.BatchNorm2d(nbf * 8)
+        self.u_bn3 = nn.BatchNorm2d(nbf * 2)
         self.up2 = nn.ConvTranspose2d(nbf * 4, nbf, 4, stride=2, padding=1, bias=False)
-        self.u_bn2 = nn.BatchNorm2d(nbf * 8)
+        self.u_bn2 = nn.BatchNorm2d(nbf)
         self.up1 = nn.ConvTranspose2d(nbf * 2, outC, 4, stride=2, padding=1)
 
         
@@ -130,6 +132,8 @@ if __name__ == "__main__":
     
     actine = Variable(actine, requires_grad=False) 
     unet = UNet(1, 3)
+    unet.apply(initialize_weights)
+    unet.eval()
     out = unet(actine)
     
 
