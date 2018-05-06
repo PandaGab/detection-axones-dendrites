@@ -73,9 +73,9 @@ if __name__ == "__main__":
     csvFilePath = "/home/nani/Documents/data/2017-11-14 EXP 201b Drugs/transcriptionTable.txt"
     mean = [32772.82847326139]
     std = [8.01126226921115]
-    transformations = transforms.Compose([tifT.RandomCrop(500),
+    transformations = transforms.Compose([tifT.RandomCrop(256),
                                           tifT.RandomHorizontalFlip(),                                         
-                                          tifT.Pad(100,mode='constant', constant_values=mean[0]),
+#                                          tifT.Pad(100,mode='constant', constant_values=mean[0]),
                                           tifT.RandomVerticalFlip(),
                                           tifT.ToTensor(),
                                           tifT.Normalize(mean=mean,
@@ -86,6 +86,7 @@ if __name__ == "__main__":
     
     dataloader = DataLoader(dataset, batch_size=2,shuffle=False)
     for actine , mask in dataloader:
+        actine = actine.type(torch.FloatTensor)
         img = (actine[0,0].numpy(),mask[0,0].numpy(),mask[0,1].numpy(), mask[0,2].numpy())
         plot(img)
         img = (actine[1,0].numpy(),mask[1,0].numpy(),mask[1,1].numpy(),mask[1,2].numpy())
