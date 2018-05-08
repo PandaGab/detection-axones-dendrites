@@ -33,13 +33,7 @@ def gaussian_blur(img, sigma=10, threshold=5e-5, logicalNot=False):
          im[im > 0] = 1
          return im
 
-
-if __name__ == "__main__":
- #    root = filedialog.askdirectory()
- #    copy_folder = input("\nEnter name of the output directory : ")
- #    copy_folder = os.path.join(root, copy_folder)
-     root = "/home/nani/Documents/data/2017-11-14 EXP 201b Drugs" # where to look
-     #os.makedirs(os.path.join(root,"masked"),exist_ok=True) # where to save
+def create_mask(root):
      keepFormat = "*.tif" # may have to change to *.tiff in windows
      flist, nlist = [],[]
      for path, subdirs, files in os.walk(root):
@@ -86,4 +80,14 @@ if __name__ == "__main__":
          tifffile.imsave(dendriteMaskSavePath, dendrites)
          n += 1
 
-     file.close()
+     file.close()    
+
+if __name__ == "__main__":
+ #    root = filedialog.askdirectory()
+ #    copy_folder = input("\nEnter name of the output directory : ")
+ #    copy_folder = os.path.join(root, copy_folder)
+     root = "/home/nani/Documents/data/2017-11-14 EXP 201b Drugs" # Portable
+     root = "/gel/usr/galec39/data/Projet détection axones dendrites" # ordi avec tout les folders
+     #os.makedirs(os.path.join(root,"masked"),exist_ok=True) # where to save
+     
+     create_mask(root)

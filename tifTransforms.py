@@ -4,6 +4,11 @@ import random
 
 import torchvision.transforms.functional as F
 
+"""
+Ce module permet d'appliquer les mêmes transformations aléatoires sur une 
+image en entrée (image d'actine) et sur les masques
+"""
+
 class RandomCrop(object):
     """Crop randomly the image in a sample.
 
@@ -43,10 +48,14 @@ class ToTensor(object):
         actine = data['actine']
         mask = data['mask']
         
-        threeChannels = len(actine.shape) == 3
-        
-        if not threeChannels:
+        isActine3Channels = len(actine.shape) == 3
+        if not isActine3Channels:
             actine = actine[:, :, np.newaxis]
+        
+        isMask3Channels = len(mask.shape) == 3
+        if not isMask3Channels:
+            mask = mask[:, :, np.newaxis]
+        
         
         # swap color axis because
         # numpy image: H x W x C

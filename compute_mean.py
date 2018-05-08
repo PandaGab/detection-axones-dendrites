@@ -5,7 +5,6 @@ from tqdm import tqdm
 
 images = glob("/home-local/galec39.nobkp/data/Projet détection axones dendrites/train/actines/*.tif", recursive=True)
 
-
 mean = 0.
 stddev = 0.
 nb_images = 0

@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import os
 from sklearn.model_selection import train_test_split
 from shutil import copyfile
+import torch
+import pandas
 
 def normalize(img):
     img = img.astype(np.float)
@@ -49,6 +51,13 @@ def splitTrainTest(root, test_size):
 
     train, test = train_test_split(np.arange(a), test_size=test_size)
     
+    # Create one csv transcription file for each folder
+    csvFilePath = os.path.join(root, "transcriptionTable.txt") # sorted
+    with open(csvFilePath) as f:
+        csvFile = f.readlines()
+    train_csv = []
+    test_csv = []
+    
     # create the folders
     tt = ["train", "test"]
     la = ["actines", "axonsMask", "dendritesMask"]
@@ -59,6 +68,7 @@ def splitTrainTest(root, test_size):
             
     # copy the files
     for trainID in train:
+        train_csv.append(csvFile[trainID])
         for b in la:
             src = os.path.join(root, b,str(trainID)+".tif")
             dst = os.path.join(root,"train", b,str(trainID)+".tif")
@@ -66,20 +76,48 @@ def splitTrainTest(root, test_size):
         
     
     for testID in test:
+        test_csv.append(csvFile[testID])
         for b in la:        
             src = os.path.join(root, b,str(testID)+".tif")
             dst = os.path.join(root,"test", b,str(testID)+".tif")
             copyfile(src, dst)
+    
+    train_temp = [int(t.split(',')[0]) for t in train_csv]
+    train_sort_idx = np.argsort(train_temp)
+    train_csv = np.array(train_csv)
+    train_csv = train_csv[train_sort_idx]
+    
+    test_temp = [int(t.split(',')[0]) for t in test_csv]
+    test_sort_idx = np.argsort(test_temp)
+    test_csv = np.array(test_csv)
+    test_csv = test_csv[test_sort_idx]
+    
+    train_csv_path = os.path.join(root, "train", "transcriptionTable.txt")
+    with open(train_csv_path, 'w') as f:
+        f.writelines(train_csv)
+    
+    test_csv_path = os.path.join(root, "test", "transcriptionTable.txt")
+    with open(test_csv_path, 'w') as f:
+        f.writelines(test_csv)
+    
+        
                 
 # just pass this function to de the net: net.apply(initialize_weights)
 def initialize_weights(m):
     name = m.__class__.__name__
     if name.find('Conv') != -1:
-        m.weight.data.normal_(0, 0.002)
+        m.weight.data.normal_(0, 0.02)
 #        print('initialize conv weights')
     elif name.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 #        print('initialize BN weights')
-        
+    
+# À partir de https://discuss.pytorch.org/t/saving-and-loading-a-model-in-pytorch/2610/3
+def save_checkpoint(state, is_best, filename='checkpoint.pth'):
+    torch.save(state, filename)
+    if is_best:
+        copyfile(filename, 'model_best.pth')
+    
+    
         

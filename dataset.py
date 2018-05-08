@@ -20,29 +20,55 @@ import numpy as np
 # std = 8.01126226921115
 
 class datasetDetection(Dataset):
-    def __init__(self, csvFilePath, transforms=None):
+    """
+    Dataset used to train the unet to predict one of the following:
+       axons_dendrites
+       axons
+       dendrites
+    """  
+    def __init__(self, csvFilePath, transforms=None, prediction='axons_dendrites'):
         super(datasetDetection, self).__init__()
+        if prediction == 'axons_dendrites':
+            self.predDendrites = True
+            self.predAxons = True
+        elif prediction == 'axons':
+            self.predDendrites = False
+            self.predAxons = True
+        elif prediction == 'dendrites':
+            self.predDendrites = True
+            self.predAxons = True
+        else:
+            raise NameError('You must specified an appropriate prediction name')
         
         rootDir = os.path.dirname(csvFilePath)
-        csvFile = pandas.read_csv(csvFilePath, header=None)
+        with open(csvFilePath) as f:
+            csvFile = f.readlines()
         
         baseActinePath = os.path.join(rootDir, "actines")
-        baseAxonesPath = os.path.join(rootDir, "axonsMask")
-        baseDendritesPath = os.path.join(rootDir, "dendritesMask")
-        
         self.actines = []
-        self.axonesMask = []
-        self.dendritesMask = []
-        # the name of the images are 0.tif, 1.tif, 2.tif... n.tif in each folders
-        for n in range(len(csvFile)):
+        
+        if self.predAxons:
+            baseAxonsPath = os.path.join(rootDir, "axonsMask")
+            self.axonsMask = []
+            
+        if self.predDendrites:
+            baseDendritesPath = os.path.join(rootDir, "dendritesMask")
+            self.dendritesMask = []
+        
+        
+        # Extract the name of the files
+        fileNumber = [int(f.split(',')[0]) for f in csvFile]
+        for n in fileNumber:
             actinePath = os.path.join(baseActinePath, str(n) + ".tif")
-            axonePath = os.path.join(baseAxonesPath, str(n) + ".tif")
-            dendritePath = os.path.join(baseDendritesPath, str(n) + ".tif")
-            
             self.actines.append(tifffile.imread(actinePath))
-            self.axonesMask.append(tifffile.imread(axonePath))
-            self.dendritesMask.append(tifffile.imread(dendritePath))
             
+            if self.predAxons:
+                axonPath = os.path.join(baseAxonsPath, str(n) + ".tif")
+                self.axonsMask.append(tifffile.imread(axonPath))
+            if self.predDendrites:
+                dendritePath = os.path.join(baseDendritesPath, str(n) + ".tif")
+                self.dendritesMask.append(tifffile.imread(dendritePath))
+                        
         if transforms is None:
             self.transformations = tifT.ToTensor()
         else:
@@ -51,22 +77,32 @@ class datasetDetection(Dataset):
     def __getitem__(self, idx):
         data = {}
         data['actine'] = self.actines[idx]
-        mask = np.stack((self.axonesMask[idx], self.dendritesMask[idx]), axis=2)
+        
+        # if we only predict axons or dendrites, we dont need the background mask
+        if self.predAxons:
+            mask = self.axonsMask[idx]
+        if self.predDendrites:
+            mask = self.dendritesMask[idx]
+        if self.predAxons and self.predDendrites:
+            mask = np.stack((self.axonesMask[idx], self.dendritesMask[idx]), axis=2)
+         
         data['mask'] = mask
         data_transform = self.transformations(data)
         actine = data_transform['actine']
-        mask = data_transform['mask']
-        background = torch.ones_like(mask[0]) - mask[0] - mask[1]
-        background[background < 0] = 0
-        masks = torch.cat([mask[0].unsqueeze(0), 
-                           mask[1].unsqueeze(0), 
-                           background.unsqueeze(0)])
+        masks = data_transform['mask']
+        
+        if self.predAxons and self.predDendrites:
+            background = torch.ones_like(mask[0]) - mask[0] - mask[1]
+            background[background < 0] = 0
+            masks = torch.cat([mask[0].unsqueeze(0), 
+                               mask[1].unsqueeze(0), 
+                               background.unsqueeze(0)])
         
         return actine, masks
     
     def __len__(self):
         return len(self.actines)
-    
+
 
     
 if __name__ == "__main__":
