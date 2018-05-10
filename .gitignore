@@ -106,8 +106,10 @@ ENV/
 /vcs.xml
 /workspace.xml
 /transcriptionTable.txt
-*.txt
+
 
 # pytorch model
 *.pth
+/run/*.pth
+
 

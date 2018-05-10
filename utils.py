@@ -4,7 +4,10 @@ import os
 from sklearn.model_selection import train_test_split
 from shutil import copyfile
 import torch
-import pandas
+from tifTransforms import Crop
+import copy
+from torch.autograd import Variable
+import torch.nn.functional as F
 
 def normalize(img):
     img = img.astype(np.float)
@@ -32,6 +35,21 @@ def plot(img, show=['actine','axon','dendrite', 'background']):
             plt.subplot(1,nbPlot,n+1)
             plt.imshow(img[3],cmap='gray')
             plt.title('Background')
+
+def train_val_dataset(train_set, val_size, val_transforms):
+    """Seperate the dataset in train and val dataset. val_size represent
+    the % of the validation set.
+    """
+    nb = len(train_set)
+    train, test = train_test_split(np.arange(nb), test_size=val_size)
+    
+    val_set = copy.deepcopy(train_set)
+    val_set.keep(test)
+    val_set.setTransformations(val_transforms)
+
+    train_set.keep(train)
+    
+    return val_set
 
 def splitTrainTest(root, test_size):
     # create train and test folders, each containing actine, axonsMask and
@@ -118,6 +136,75 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth'):
     torch.save(state, filename)
     if is_best:
         copyfile(filename, 'model_best.pth')
+        
+def predict(im, net, crop_size):
+    """
+    Because the net was train with square crop, the inference will be done the
+    same way. We are going to do overlapping prediction. We average the 
+    prediction of the overlapped section.
+    crop_size will always be an even number.
+    im is a numpy array (C, H, W)
+    """
+    assert isinstance(crop_size, (int, tuple))
+    if isinstance(crop_size, int):
+        crop_size = (crop_size, crop_size)
     
+    h, w = im.shape[:2]
+
+    delta_h = np.round(crop_size[0] / 2)
+    delta_w = np.round(crop_size[1] / 2)
     
+    prediction = np.zeros_like(im)
+    nbPredictions = np.zeros_like(im)
+    
+    h_step = np.arange(0, h - delta_h, delta_h, dtype=np.int)
+    w_step = np.arange(0, w - delta_w, delta_w, dtype=np.int)
+    
+    for hs in h_step:
+        for ws in w_step:
+            crop = Crop(crop_size, (hs, ws))
+            top, bot, left, right = crop(im)
+            
+            # we always want crop_size crops
+            if (bot - top) < crop_size[0]:
+                top = bot - crop_size[0]
+            if (right - left) < crop_size[0]:
+                left = right - crop_size[0]
+            
+            cropIm = torch.from_numpy(np.moveaxis(im[top: bot, left: right], 2, 0)).type(torch.FloatTensor).unsqueeze(0)
+            cropIm = Variable(cropIm, requires_grad=False).cuda()
+            out = F.sigmoid(net(cropIm))
+            pred = np.moveaxis(out.data.squeeze(0).cpu().numpy(), 0, 2)
+            
+            nbPredictions[top: bot, left: right] = nbPredictions[top: bot, left: right] + 1
+            prediction[top: bot, left: right] = prediction[top: bot, left: right] + pred                                              
+                                              
+    return prediction / nbPredictions
+    
+def prediction_accuracy(predim, GTim, threshold=0.5):
+    """This function compute the accuracy of the prediction with the ground
+    truth. It is calculted as follow
+    acc =     U 
+          ---------
+          pred+GT-U
+    where: 
+        U is the union section between pred and GT
+        pred is the predicted area
+        GT is the ground truth area
+    
+    Threshold represent the minimum value to be consider 1
+    """
+    predim = predim > threshold
+    
+    # we are going to work with the number of pixels at 1 to define the area
+    U = np.sum(np.logical_and(predim, GTim))
+    pred = np.sum(predim)
+    GT = np.sum(GTim)
+    
+    return U / (pred + GT - U)
+    
+
+
+
+
         

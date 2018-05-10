@@ -9,6 +9,40 @@ Ce module permet d'appliquer les mêmes transformations aléatoires sur une
 image en entrée (image d'actine) et sur les masques
 """
 
+class Crop(object):
+    """Crop the image.
+    
+    Args:
+        ouput_size (tuple or int): Desired output size. If int, square crop
+            is made.
+        corner (tuple): top-left corner of the desired crop (h ,w)
+    """
+    def __init__(self, output_size, corner):
+        assert isinstance(output_size, (int, tuple))
+        if isinstance(output_size, int):
+            self.output_size = (output_size, output_size)
+        else:
+            assert len(output_size) == 2
+            self.output_size = output_size
+        assert isinstance(corner, tuple)
+        assert len(corner) == 2
+        self.corner = corner
+    
+    def __call__(self, im):
+#        actine = data['actine']
+#        mask = data['mask']
+        h, w = im.shape[:2]
+        new_h, new_w = self.output_size
+        
+        top = np.round(self.corner[0])
+        left = np.round(self.corner[1])
+        
+        bot = np.clip(top + new_h, 0, h)
+        right = np.clip(left + new_w, 0, w)
+        
+        return top, bot, left, right
+        
+
 class RandomCrop(object):
     """Crop randomly the image in a sample.
 
@@ -112,5 +146,7 @@ class Pad(object):
     def __call__(self, data):
         data['actine'] = np.pad(data['actine'], self.pad_width, self.mode, **self.kwargs)
         return data
-        
+
+
+
         

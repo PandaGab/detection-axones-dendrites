@@ -12,7 +12,6 @@ from utils import plot
 #from fnmatch import fnmatch
 #from skimage.external import tifffile
 
-import pandas
 import numpy as np
 
 # statistiques sur les photos dans train/actines
@@ -47,6 +46,11 @@ class datasetDetection(Dataset):
         baseActinePath = os.path.join(rootDir, "actines")
         self.actines = []
         
+        # in order to keep track of where the 
+        # image comes from, we add the id of the image (the integer in front
+        # of the path in the csv, variable n below)
+        self.id = []
+        
         if self.predAxons:
             baseAxonsPath = os.path.join(rootDir, "axonsMask")
             self.axonsMask = []
@@ -59,6 +63,8 @@ class datasetDetection(Dataset):
         # Extract the name of the files
         fileNumber = [int(f.split(',')[0]) for f in csvFile]
         for n in fileNumber:
+            self.id.append(n)
+            
             actinePath = os.path.join(baseActinePath, str(n) + ".tif")
             self.actines.append(tifffile.imread(actinePath))
             
@@ -102,6 +108,18 @@ class datasetDetection(Dataset):
     
     def __len__(self):
         return len(self.actines)
+    
+    def keep(self, ID):
+        self.actines = [self.actines[i] for i in ID]
+        if self.predAxons:
+            self.axonsMask = [self.axonsMask[i] for i in ID]
+        if self.predDendrites:
+            self.dendritesMask = [self.dendritesMask[i] for i in ID] 
+        self.id = [self.id[i] for i in ID]
+
+    
+    def setTransformations(self, transforms):
+        self.transformations = transforms
 
 
     

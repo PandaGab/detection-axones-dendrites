@@ -1,0 +1,3 @@
+run1.pth => 50 epoch, lr=0.01 best1.pth => 41 epoch
+best2.pth => 25 epch, lr=0.1, dimfactor=10 apres 10 epoch
+best3.pth/last3.pth => 115 epoch, lr = 0.001
