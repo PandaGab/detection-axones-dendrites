@@ -143,7 +143,7 @@ def predict(im, net, crop_size):
     same way. We are going to do overlapping prediction. We average the 
     prediction of the overlapped section.
     crop_size will always be an even number.
-    im is a numpy array (C, H, W)
+    im is a numpy array (H, W, C)
     """
     assert isinstance(crop_size, (int, tuple))
     if isinstance(crop_size, int):
@@ -194,6 +194,12 @@ def prediction_accuracy(predim, GTim, threshold=0.5):
     
     Threshold represent the minimum value to be consider 1
     """
+    
+    
+    """ 
+    EDIT: Finally, this is not a good way of measuring the accuracy. See next
+    function accuracy
+    """
     predim = predim > threshold
     
     # we are going to work with the number of pixels at 1 to define the area
@@ -203,7 +209,25 @@ def prediction_accuracy(predim, GTim, threshold=0.5):
     
     return U / (pred + GT - U)
     
+def accuracy(predim, GTim, threshold=0.5):
+    """This function compute the ratio for each predicted label over the ground
+    truth
+    """
+    
+    predim = predim > 0.5
+    
+    backgroundGT = GTim == 0
+    backgroundPred = predim == 0
 
+    labelGT = GTim == 1
+    labelPred = predim == 1
+    
+    backgroundAccuracy = np.sum(backgroundGT * backgroundPred) / np.sum(backgroundGT)
+    
+    labelAccuracy = np.sum(labelGT * labelPred) / np.sum(labelGT)
+    
+    return labelAccuracy, backgroundAccuracy 
+    
 
 
 

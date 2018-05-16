@@ -90,7 +90,7 @@ class datasetDetection(Dataset):
         if self.predDendrites:
             mask = self.dendritesMask[idx]
         if self.predAxons and self.predDendrites:
-            mask = np.stack((self.axonesMask[idx], self.dendritesMask[idx]), axis=2)
+            mask = np.stack((self.axonsMask[idx], self.dendritesMask[idx]), axis=2)
          
         data['mask'] = mask
         data_transform = self.transformations(data)
@@ -98,10 +98,10 @@ class datasetDetection(Dataset):
         masks = data_transform['mask']
         
         if self.predAxons and self.predDendrites:
-            background = torch.ones_like(mask[0]) - mask[0] - mask[1]
+            background = torch.ones_like(masks[0]) - masks[0] - masks[1]
             background[background < 0] = 0
-            masks = torch.cat([mask[0].unsqueeze(0), 
-                               mask[1].unsqueeze(0), 
+            masks = torch.cat([masks[0].unsqueeze(0), 
+                               masks[1].unsqueeze(0), 
                                background.unsqueeze(0)])
         
         return actine, masks

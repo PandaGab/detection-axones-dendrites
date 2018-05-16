@@ -47,6 +47,9 @@ class UNet(nn.Module):
         self.up2 = nn.ConvTranspose2d(nbf * 4, nbf, 4, stride=2, padding=1, bias=False)
         self.u_bn2 = nn.BatchNorm2d(nbf)
         self.up1 = nn.ConvTranspose2d(nbf * 2, outC, 4, stride=2, padding=1)
+        self.u7_drop = nn.Dropout2d()
+        self.u6_drop = nn.Dropout2d()
+        self.u5_drop = nn.Dropout2d()
 
         
         self.downReLU = nn.LeakyReLU(0.2, True)
@@ -62,9 +65,9 @@ class UNet(nn.Module):
         d6 = self.downReLU(self.d_bn6(self.down6(d5))) # 512 channels
         d7 = self.downReLU(self.d_bn7(self.down7(d6))) # 512 channels
         b8 = self.downReLU(self.d_bn8(self.down8(d7))) # 512 channels bottleneck
-        u7 = self.upReLU(self.u_bn8(self.up8(b8)))  # 512 channels
-        u6 = self.upReLU(self.u_bn7(self.up7(torch.cat([d7, u7], 1))))
-        u5 = self.upReLU(self.u_bn6(self.up6(torch.cat([d6, u6], 1))))
+        u7 = self.u7_drop(self.upReLU(self.u_bn8(self.up8(b8))))  # 512 channels
+        u6 = self.u6_drop(self.upReLU(self.u_bn7(self.up7(torch.cat([d7, u7], 1)))))
+        u5 = self.u5_drop(self.upReLU(self.u_bn6(self.up6(torch.cat([d6, u6], 1)))))
         u4 = self.upReLU(self.u_bn5(self.up5(torch.cat([d5, u5], 1))))
         u3 = self.upReLU(self.u_bn4(self.up4(torch.cat([d4, u4], 1))))
         u2 = self.upReLU(self.u_bn3(self.up3(torch.cat([d3, u3], 1))))
