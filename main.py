@@ -16,10 +16,10 @@ import torch.nn.functional as F
 import os
 import numpy as np
 
-preprocess = False
+preprocess = True
 use_gpu = True
 ####### DataPreprocessing #########
-root = "/gel/usr/galec39/data/Projet détection axones dendrites"
+root = "/home/nani/Documents/data/Projet détection axones dendrites"
 if preprocess:
     # Création des masques
     create_mask(root)

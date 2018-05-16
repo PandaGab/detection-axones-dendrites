@@ -22,10 +22,12 @@ def gaussian_blur(img, sigma=10, threshold=5e-5, logicalNot=False):
      :returns : The binary image filtered with gaussian blur
      '''
      gaussianBlur = filters.gaussian(img, sigma=sigma)
-     vmax = np.amax(gaussianBlur)
-     binaryFilter = (gaussianBlur > threshold * vmax).astype(int)
+#     vmax = np.amax(gaussianBlur)
+     binaryFilter = (gaussianBlur > threshold).astype(int)
+#     binaryFilter = (gaussianBlur > threshold * vmax).astype(int)
      im = gaussianBlur * binaryFilter
-     im = im / np.amax(im)
+     if np.amax(im) != 0:   
+         im = im / np.amax(im)
      if logicalNot:
          im[im > 0] = 1
          return np.logical_not(im)
@@ -73,8 +75,10 @@ def create_mask(root):
          for chan in range(img.shape[0]):
              img[chan] = img[chan] - np.amin(img[chan]) # normalize to normal count
 
-         axons = gaussian_blur(img[1], sigma=5, threshold=0.1).astype(np.uint8) * 255 # axon mask
-         dendrites = gaussian_blur(img[2], sigma=5, threshold=0.2).astype(np.uint8) * 255 # dendrite mask
+#         axons = gaussian_blur(img[1], sigma=5, threshold=0.1).astype(np.uint8) * 255 # axon mask
+         axons = gaussian_blur(img[1,:,:], sigma=8, threshold=4e-5).astype(np.uint8) * 255
+#         dendrites = gaussian_blur(img[2], sigma=5, threshold=0.2).astype(np.uint8) * 255 # dendrite mask
+         dendrites = gaussian_blur(img[2]).astype(np.uint8) * 255 # original
 
          tifffile.imsave(axoneMaskSavePath, axons)
          tifffile.imsave(dendriteMaskSavePath, dendrites)
@@ -86,8 +90,8 @@ if __name__ == "__main__":
  #    root = filedialog.askdirectory()
  #    copy_folder = input("\nEnter name of the output directory : ")
  #    copy_folder = os.path.join(root, copy_folder)
-     root = "/home/nani/Documents/data/2017-11-14 EXP 201b Drugs" # Portable
-     root = "/gel/usr/galec39/data/Projet détection axones dendrites" # ordi avec tout les folders
+     root = "/home/nani/Documents/data/Projet détection axones dendrites" # Portable
+#     root = "/gel/usr/galec39/data/Projet détection axones dendrites" # ordi avec tout les folders
      #os.makedirs(os.path.join(root,"masked"),exist_ok=True) # where to save
      
      create_mask(root)
