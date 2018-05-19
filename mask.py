@@ -76,7 +76,7 @@ def create_mask(root):
              img[chan] = img[chan] - np.amin(img[chan]) # normalize to normal count
 
 #         axons = gaussian_blur(img[1], sigma=5, threshold=0.1).astype(np.uint8) * 255 # axon mask
-         axons = gaussian_blur(img[1,:,:], sigma=8, threshold=4e-5).astype(np.uint8) * 255
+         axons = gaussian_blur(img[1,:,:], sigma=8, threshold=10e-5).astype(np.uint8) * 255
 #         dendrites = gaussian_blur(img[2], sigma=5, threshold=0.2).astype(np.uint8) * 255 # dendrite mask
          dendrites = gaussian_blur(img[2]).astype(np.uint8) * 255 # original
 

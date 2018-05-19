@@ -198,7 +198,7 @@ def prediction_accuracy(predim, GTim, threshold=0.5):
     
     """ 
     EDIT: Finally, this is not a good way of measuring the accuracy. See next
-    function accuracy
+    function : accuracy
     """
     predim = predim > threshold
     
@@ -214,7 +214,8 @@ def accuracy(predim, GTim, threshold=0.5):
     truth
     """
     
-    predim = predim > 0.5
+    predim = predim > threshold
+    GTim = GTim > 0.5 # just to make boolean
     
     backgroundGT = GTim == 0
     backgroundPred = predim == 0
@@ -224,7 +225,10 @@ def accuracy(predim, GTim, threshold=0.5):
     
     backgroundAccuracy = np.sum(backgroundGT * backgroundPred) / np.sum(backgroundGT)
     
-    labelAccuracy = np.sum(labelGT * labelPred) / np.sum(labelGT)
+    if np.sum(labelGT) == 0:
+        labelAccuracy = 0.5
+    else:
+        labelAccuracy = np.sum(labelGT * labelPred) / np.sum(labelGT)
     
     return labelAccuracy, backgroundAccuracy 
     

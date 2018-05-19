@@ -2,7 +2,7 @@ from dataset import datasetDetection
 from unet import UNet
 import tifTransforms as tifT
 from utils import initialize_weights, splitTrainTest, save_checkpoint, train_val_dataset
-from utils import predict, prediction_accuracy
+from utils import predict, accuracy
 from mask import create_mask
 
 from torch.utils.data import DataLoader
@@ -16,10 +16,10 @@ import torch.nn.functional as F
 import os
 import numpy as np
 
-preprocess = True
+preprocess = False
 use_gpu = True
 ####### DataPreprocessing #########
-root = "/home/nani/Documents/data/Projet détection axones dendrites"
+root = "/gel/usr/galec39/data/Projet détection axones dendrites"
 if preprocess:
     # Création des masques
     create_mask(root)
@@ -44,10 +44,12 @@ transformations = transforms.Compose([tifT.RandomCrop(crop_size),
 train_set = datasetDetection(trainCsvFilePath, 
                            transforms=transformations,
                            prediction='axons')
+
 val_size=0.1
 val_transforms = transforms.Compose([tifT.ToTensor(),
                                      tifT.Normalize(mean=mean,
                                                     std=std)])
+                                                                    
 val_set = train_val_dataset(train_set, val_size, val_transforms)
 
 train_dataloader = DataLoader(train_set, batch_size=32,shuffle=True)
@@ -62,23 +64,28 @@ unet.apply(initialize_weights)
 ####### Initialize training parameters ######
 n_epoch = 300
 patience = 5
-lr = 0.001
-momentum = 0.99
+lr = 0.1
+momentum = 0.9
+validation_iter = 5
+weight_decay = 0.1
 
 ####### Initialize optimizer and loss ######
 optimizer = optim.SGD(unet.parameters(), lr=lr, momentum=momentum)
+
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
 criterion = nn.BCELoss()
 
 ####### Training #######
 history_loss = []
-history_acc = [0]
+history_label = [0]
+history_background = [0]
 nb_val = len(val_dataloader)
 for epoch in range(n_epoch):
+    scheduler.step()
     unet.train()
     epoch_loss = 0
-#    if epoch % 10 == 0:
-#        lr = lr / 10
+
     for i, (actine, mask) in enumerate(train_dataloader):
         X = actine.type(torch.FloatTensor)
         y = mask.type(torch.ByteTensor)
@@ -90,6 +97,8 @@ for epoch in range(n_epoch):
             X = Variable(X)
             y = Variable(y)
             
+        optimizer.zero_grad()
+
         pred = unet(X)
         prob = F.sigmoid(pred)
         prob_flatten = prob.view(-1)
@@ -99,44 +108,57 @@ for epoch in range(n_epoch):
         loss = criterion(prob_flatten, y_flatten.float())
         epoch_loss += loss.data[0]
         
-        optimizer.zero_grad()
         
         loss.backward()
         
         optimizer.step()
         
     # Validation
-    history_loss.append(epoch_loss)
-    
-    unet.eval()
-    accTot = 0
-    for actine, mask in val_dataloader:
-        X = np.moveaxis(actine.squeeze(0).cpu().numpy(), 0, 2)
-        y = np.moveaxis(mask.squeeze(0).cpu().numpy(), 0, 2)
+    if (epoch % validation_iter) == 0:
+        history_loss.append(epoch_loss)
         
-        pred = predict(X, unet, crop_size)
-        acc = prediction_accuracy(pred, y, threshold=0.5)
-        accTot += acc
-    val_acc = accTot / nb_val
+        unet.eval()
+        accLabelTot = 0
+        accBackTot = 0
+        for actine, mask in val_dataloader:
+            X = np.moveaxis(actine.squeeze(0).cpu().numpy(), 0, 2)
+            y = np.moveaxis(mask.squeeze(0).cpu().numpy(), 0, 2)
+            
+            pred = predict(X, unet, crop_size)
+            
+            labelacc, backgroundacc = accuracy(pred, y, threshold=0.5)
+            accLabelTot += labelacc
+            accBackTot += backgroundacc
+        label_acc = accLabelTot / nb_val
+        background_acc = accBackTot / nb_val
+            
+        print('epoch : {} --- loss : {:.3f} --- label acc : {:.3f} --- background acc : {:.3f}'.format(epoch, 
+                                                                                                       epoch_loss,
+                                                                                                       label_acc,
+                                                                                                       background_acc))
         
-    print('epoch :',epoch,' ---- loss :',epoch_loss, '---- val acc :', val_acc)
-    state = {
-            'epoch' : epoch,
-            'loss' : epoch_loss,
-            'loss_history' : history_loss,
-            'state_dict' : unet.state_dict(),
-            'acc' : val_acc,
-            'acc_history' : history_acc,
-            'optimizer' : optimizer.state_dict()
-            }
-    is_best = False
-    if val_acc > history_acc[-1]:
-        is_best = True
-    history_acc.append(val_acc)
-
+        state = {
+                'epoch' : epoch,
+                'loss' : epoch_loss,
+                'loss_history' : history_loss,
+                'state_dict' : unet.state_dict(),
+                'label_acc' : label_acc,
+                'label_acc_history' : history_label,
+                'background_acc' : background_acc,
+                'background_acc_history' : history_background,
+                'optimizer' : optimizer.state_dict()
+                }
     
-    modelname = '/gel/usr/galec39/data/Projet détection axones dendrites/models/model_{}.pth'.format(epoch)
-    save_checkpoint(state, is_best, filename=modelname)
+        
+        is_best = False
+        if label_acc > history_label[-1]:
+            is_best = True
+            
+        history_label.append(label_acc)
+        history_background.append(background_acc)
+        
+        modelname = '/gel/usr/galec39/data/Projet détection axones dendrites/models/model_{}.pth'.format(epoch)
+        save_checkpoint(state, is_best, filename=modelname)
     
 
 

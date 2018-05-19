@@ -1,10 +1,11 @@
 import torch
 from torch.utils.data import DataLoader
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 from torchvision import transforms
 from tqdm import tqdm
+import skimage.io as io
+
 from utils import predict
 
 import tifTransforms as tifT
@@ -16,12 +17,12 @@ from unet import UNet
 use_gpu = True
 
 # The model we want to evaluate
-axonsModelPath = "/gel/usr/galec39/Documents/dev/detection-axones-dendrites/runs/best3.pth"
-dendritesModelPath = "/gel/usr/galec39/Documents/dev/detection-axones-dendrites/runs/best3.pth"
+axonsModelPath = "/gel/usr/galec39/Documents/dev/detection-axones-dendrites/runs/best4.pth" # best4.pth
+dendritesModelPath = "/gel/usr/galec39/Documents/dev/detection-axones-dendrites/runs/dendrite.pth"
 
 # The folder containing the images to evaluate
 root = "/gel/usr/galec39/data/Projet détection axones dendrites/test"
-predDir = os.path.join(root, "predictions")
+predDir = os.path.join(root, "predictions3")
 if not os.path.exists(predDir):
     os.mkdir(predDir)
 
@@ -53,6 +54,7 @@ ax_den_dataset = datasetDetection(testCsvFilePath,
 ax_den_Loader = DataLoader(ax_den_dataset, batch_size=1, shuffle=False)
 imageID = ax_den_dataset.id # we follow this order if we put shuffle=False
 thresholds = np.array([0.5, 0.5])
+[n.eval() for n in unet]
 for i, (actine, masks) in tqdm(enumerate(ax_den_Loader)):
     X = np.moveaxis(actine.squeeze(0).cpu().numpy(), 0, 2)
     y = np.moveaxis(masks.squeeze(0).cpu().numpy(), 0, 2)
@@ -60,7 +62,18 @@ for i, (actine, masks) in tqdm(enumerate(ax_den_Loader)):
     axMask = y[:, :, 0]
     denMask = y[:, :, 1]
     
+    h, w = y.shape[:2]
+    im = np.zeros((h, w, 3), np.uint8)
+    
     pred = [predict(X, n, crop_size) for n in unet]
+    prob = [p > thresholds[i] for i, p in enumerate(pred)]
+    
+    im[:,:,0] = prob[0][:,:,0] * 255
+    im[:,:,1] = prob[1][:,:,0] * 255
+    
+    io.imsave(os.path.join(predDir, str(imageID[i])+".jpg"), im)
+    
+    
     
     
     

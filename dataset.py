@@ -35,7 +35,7 @@ class datasetDetection(Dataset):
             self.predAxons = True
         elif prediction == 'dendrites':
             self.predDendrites = True
-            self.predAxons = True
+            self.predAxons = False
         else:
             raise NameError('You must specified an appropriate prediction name')
         
@@ -94,6 +94,8 @@ class datasetDetection(Dataset):
          
         data['mask'] = mask
         data_transform = self.transformations(data)
+#        if len(data_transform) > 1:
+#            return data_transform
         actine = data_transform['actine']
         masks = data_transform['mask']
         

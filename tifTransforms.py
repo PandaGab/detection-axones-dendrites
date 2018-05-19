@@ -6,7 +6,8 @@ import torchvision.transforms.functional as F
 
 """
 Ce module permet d'appliquer les mêmes transformations aléatoires sur une 
-image en entrée (image d'actine) et sur les masques
+image en entrée (image d'actine) et sur les masques. Il est grandement inspiré 
+du module transforms de Pytorch.
 """
 
 class Crop(object):
@@ -42,7 +43,43 @@ class Crop(object):
         
         return top, bot, left, right
         
+class FiveCrop(object):
+    """Take five crop (corners and center) from the actine and masks."""
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        if isinstance(output_size, int):
+            self.output_size = (output_size, output_size)
+        else:
+            assert len(output_size) == 2, "Please provide only two dimensions (h, w) for size."
+            self.output_size = output_size
+        
+    def __call__(self, data):
+        size = self.output_size
+        actine = data['actine']
+        mask = data['mask']
+        h, w = actine.shape[:2]    
+        crop_h, crop_w = size
+        if crop_h > h and crop_w > w:
+            raise ValueError("Crop size error")
+        
+        tl = Crop(size, (0, 0))(actine)
+        tr = Crop(size, (0, w - crop_w))(actine)
+        bl = Crop(size, (h - crop_h, 0))(actine)
+        br = Crop(size, (h - crop_h, w - crop_w))(actine)
+        
+        i = int(round((h - crop_h) / 2.))
+        j = int(round((w - crop_w) / 2.))
 
+        cc = Crop(size, (i, j))(actine)
+    
+        outCrops = [{'actine' : actine[tl[0]: tl[1], tl[2]: tl[3]], 'mask' : mask[tl[0]: tl[1], tl[2]: tl[3]]},
+                    {'actine' : actine[tr[0]: tr[1], tr[2]: tr[3]], 'mask' : mask[tr[0]: tr[1], tr[2]: tr[3]]},
+                    {'actine' : actine[bl[0]: bl[1], bl[2]: bl[3]], 'mask' : mask[bl[0]: bl[1], bl[2]: bl[3]]},
+                    {'actine' : actine[br[0]: br[1], br[2]: br[3]], 'mask' : mask[br[0]: br[1], br[2]: br[3]]},
+                    {'actine' : actine[cc[0]: cc[1], cc[2]: cc[3]], 'mask' : mask[cc[0]: cc[1], cc[2]: cc[3]]}]
+ 
+        return outCrops
+        
 class RandomCrop(object):
     """Crop randomly the image in a sample.
 
@@ -67,7 +104,16 @@ class RandomCrop(object):
         
         top = np.random.randint(0, h - new_h)
         left = np.random.randint(0, w - new_w)
+        
+        emptyMask = np.sum(mask[top: top + new_h, left: left + new_w]) == 0
+        if np.sum(mask) == 0: # because the whole image is empty
+            emptyMask = False
+        
+        while emptyMask:
+            top = np.random.randint(0, h - new_h)
+            left = np.random.randint(0, w - new_w)
 
+            emptyMask = np.sum(mask[top: top + new_h, left: left + new_w]) == 0
         data['actine'] = actine[top: top + new_h,
                        left: left + new_w]
         data['mask'] = mask[top: top + new_h,
@@ -148,5 +194,6 @@ class Pad(object):
         return data
 
 
+        
 
         
